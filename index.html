@@ -477,6 +477,7 @@
         const MIN_NUMERO = 1;
         const MAX_NUMERO = 60;
         const RANDOMIZE_DURATION = 65000; // 65 segundos
+        const RANDOMIZE_SPEED = 1; // ← VELOCIDADE DA RANDOMIZAÇÃO (ms)
 
         // ============================================================
         // VARIÁVEIS DE ESTADO
@@ -626,7 +627,7 @@
                     statusText.className = 'randomizing-status';
                 }
                 
-            }, 80); // Troca a cada 80ms para ser mais rápido e dinâmico
+            }, RANDOMIZE_SPEED); // Troca a cada 80ms para ser mais rápido e dinâmico
             
             // Agenda o fim da randomização após 65 segundos
             setTimeout(() => {
