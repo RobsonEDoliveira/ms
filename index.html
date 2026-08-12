@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎰 Mega-Sena - Sorteio com Randomização</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            border-radius: 30px;
+            padding: 40px 35px;
+            max-width: 850px;
+            width: 100%;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        h1 {
+            text-align: center;
+            color: #ffd700;
+            font-size: 2.2rem;
+            font-weight: 700;
+            margin-bottom: 5px;
+            text-shadow: 0 0 30px rgba(255, 215, 0, 0.2);
+        }
+
+        .subtitle {
+            text-align: center;
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 0.9rem;
+            margin-bottom: 25px;
+        }
+
+        .numbers-container {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin: 25px 0 20px;
+            flex-wrap: wrap;
+        }
+
+        .number-ball {
+            width: 75px;
+            height: 75px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: #fff;
+            background: linear-gradient(145deg, #2d3436, #1a1a2e);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+            position: relative;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .number-ball.waiting {
+            border-color: rgba(255, 215, 0, 0.3);
+        }
+
+        .number-ball.randomizing {
+            border-color: #ffd700;
+            box-shadow: 0 0 40px rgba(255, 215, 0, 0.3);
+            animation: pulse-gold 0.3s ease-in-out infinite alternate;
+        }
+
+        .number-ball.sorted {
+            background: linear-gradient(145deg, #ff6b6b, #ee5a24);
+            border-color: #ffd700;
+            box-shadow: 0 8px 30px rgba(238, 90, 36, 0.4);
+            animation: none;
+        }
+
+        .number-ball .num {
+            position: relative;
+            z-index: 1;
+            transition: transform 0.1s ease;
+        }
+
+        .number-ball.randomizing .num {
+            animation: shake 0.15s ease-in-out infinite alternate;
+        }
+
+        @keyframes shake {
+            0% { transform: scale(1) rotate(0deg); }
+            25% { transform: scale(1.15) rotate(-8deg); }
+            75% { transform: scale(0.85) rotate(8deg); }
+            100% { transform: scale(1) rotate(0deg); }
+        }
+
+        @keyframes pulse-gold {
+            0% { box-shadow: 0 0 20px rgba(255, 215, 0, 0.2); border-color: #ffd700; }
+            100% { box-shadow: 0 0 50px rgba(255, 215, 0, 0.5); border-color: #f9a825; }
+        }
+
+        @keyframes pop {
+            0% { transform: scale(0.3); opacity: 0; }
+            70% { transform: scale(1.15); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .number-ball.pop {
+            animation: pop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+
+        .number-ball .order-label {
+            position: absolute;
+            top: -12px;
+            right: -12px;
+            background: #ffd700;
+            color: #1a1a2e;
+            font-size: 0.6rem;
+            font-weight: 700;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 10px rgba(255, 215, 0, 0.3);
+        }
+
+        .number-ball .order-label.hidden {
+            display: none;
+        }
+
+        .number-ball .order-label.sorted-label {
+            background: #fff;
+            color: #1a1a2e;
+        }
+
+        /* Cores especiais para cada número */
+        .number-ball.sorted.pos-1 { background: linear-gradient(145deg, #ff6b6b, #ee5a24); }
+        .number-ball.sorted.pos-2 { background: linear-gradient(145deg, #ff9f43, #e17055); }
+        .number-ball.sorted.pos-3 { background: linear-gradient(145deg, #feca57, #ff9f43); }
+        .number-ball.sorted.pos-4 { background: linear-gradient(145deg, #54a0ff, #2e86de); }
+        .number-ball.sorted.pos-5 { background: linear-gradient(145deg, #5f27cd, #341f97); }
+        .number-ball.sorted.pos-6 { background: linear-gradient(145deg, #00b894, #00a86b); }
+
+        .info-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 15px 0 20px;
+            padding: 12px 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .timer {
+            color: #ffd700;
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .timer span {
+            font-size: 1.8rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #ffd700, #f9a825);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .progress-info {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.95rem;
+        }
+
+        .progress-info span {
+            color: #fff;
+            font-weight: 700;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 5px 0 15px;
+        }
+
+        .progress-bar .fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ffd700, #f9a825);
+            border-radius: 4px;
+            transition: width 1s linear;
+            width: 0%;
+        }
+
+        .controls {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 50px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-start {
+            background: linear-gradient(135deg, #00b894, #00a86b);
+            color: #fff;
+            box-shadow: 0 8px 25px rgba(0, 184, 148, 0.3);
+        }
+
+        .btn-start:hover:not(:disabled) {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 35px rgba(0, 184, 148, 0.5);
+        }
+
+        .btn-start:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-stop {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+            color: #fff;
+            box-shadow: 0 8px 25px rgba(231, 76, 60, 0.3);
+        }
+
+        .btn-stop:hover:not(:disabled) {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 35px rgba(231, 76, 60, 0.5);
+        }
+
+        .btn-stop:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-clear {
+            background: rgba(255, 255, 255, 0.08);
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+
+        .btn-clear:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .status {
+            text-align: center;
+            margin-top: 15px;
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 0.85rem;
+        }
+
+        .status .active {
+            color: #ffd700;
+            font-weight: 600;
+        }
+
+        .status .inactive {
+            color: #e74c3c;
+            font-weight: 600;
+        }
+
+        .status .completed {
+            color: #00b894;
+            font-weight: 600;
+        }
+
+        .status .randomizing-status {
+            color: #ff9f43;
+            font-weight: 600;
+        }
+
+        .history {
+            margin-top: 20px;
+            padding: 15px 18px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 12px;
+            max-height: 180px;
+            overflow-y: auto;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .history::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        .history::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+        }
+
+        .history::-webkit-scrollbar-thumb {
+            background: rgba(255, 215, 0, 0.3);
+            border-radius: 10px;
+        }
+
+        .history-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 12px;
+            margin-bottom: 4px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.03);
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 0.9rem;
+        }
+
+        .history-item:hover {
+            background: rgba(255, 255, 255, 0.06);
+        }
+
+        .history-item .numbers {
+            font-weight: 600;
+            color: #ffd700;
+        }
+
+        .history-item .time {
+            color: rgba(255, 255, 255, 0.35);
+            font-size: 0.75rem;
+        }
+
+        .history-empty {
+            text-align: center;
+            color: rgba(255, 255, 255, 0.25);
+            padding: 15px;
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 25px 15px;
+            }
+
+            h1 {
+                font-size: 1.6rem;
+            }
+
+            .number-ball {
+                width: 58px;
+                height: 58px;
+                font-size: 1.3rem;
+            }
+
+            .numbers-container {
+                gap: 10px;
+            }
+
+            .info-container {
+                flex-direction: column;
+                text-align: center;
+                gap: 5px;
+            }
+
+            .controls {
+                gap: 8px;
+            }
+
+            .btn {
+                padding: 10px 18px;
+                font-size: 0.85rem;
+                flex: 1;
+                min-width: 90px;
+            }
+
+            .number-ball .order-label {
+                width: 20px;
+                height: 20px;
+                font-size: 0.5rem;
+                top: -10px;
+                right: -10px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>🎰 Mega-Sena</h1>
+        <p class="subtitle">65 segundos de randomização por número</p>
+
+        <div class="numbers-container" id="numbersContainer">
+            <div class="number-ball waiting" id="ball1">
+                <span class="num">?</span>
+                <span class="order-label hidden">1</span>
+            </div>
+            <div class="number-ball waiting" id="ball2">
+                <span class="num">?</span>
+                <span class="order-label hidden">2</span>
+            </div>
+            <div class="number-ball waiting" id="ball3">
+                <span class="num">?</span>
+                <span class="order-label hidden">3</span>
+            </div>
+            <div class="number-ball waiting" id="ball4">
+                <span class="num">?</span>
+                <span class="order-label hidden">4</span>
+            </div>
+            <div class="number-ball waiting" id="ball5">
+                <span class="num">?</span>
+                <span class="order-label hidden">5</span>
+            </div>
+            <div class="number-ball waiting" id="ball6">
+                <span class="num">?</span>
+                <span class="order-label hidden">6</span>
+            </div>
+        </div>
+
+        <div class="progress-bar">
+            <div class="fill" id="progressFill"></div>
+        </div>
+
+        <div class="info-container">
+            <div class="timer">
+                ⏱️ Próximo número: <span id="timerDisplay">65</span>s
+            </div>
+            <div class="progress-info">
+                🎯 <span id="currentDraw">0</span>/6 números
+            </div>
+            <div class="progress-info">
+                📊 Sorteios: <span id="drawCount">0</span>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="btn btn-start" id="btnStart">▶️ Iniciar</button>
+            <button class="btn btn-stop" id="btnStop" disabled>⏹️ Parar</button>
+            <button class="btn btn-clear" id="btnClear">🗑️ Limpar</button>
+        </div>
+
+        <div class="status">
+            Status: <span id="statusText" class="inactive">Aguardando início</span>
+        </div>
+
+        <div class="history" id="historyContainer">
+            <div class="history-empty" id="historyEmpty">Nenhum sorteio completo ainda</div>
+        </div>
+    </div>
+
+    <script>
+        // ============================================================
+        // CONFIGURAÇÕES
+        // ============================================================
+        const INTERVALO_SEGUNDOS = 65;
+        const QUANTIDADE_NUMEROS = 6;
+        const MIN_NUMERO = 1;
+        const MAX_NUMERO = 60;
+        const RANDOMIZE_DURATION = 65000; // 65 segundos
+
+        // ============================================================
+        // VARIÁVEIS DE ESTADO
+        // ============================================================
+        let isRunning = false;
+        let timerId = null;
+        let randomizeId = null;
+        let currentTime = INTERVALO_SEGUNDOS;
+        let numerosSorteados = [];
+        let currentPos = 0;
+        let drawCount = 0;
+        let history = [];
+        let numeroEscolhido = null;
+        let isRandomizing = false;
+
+        // ============================================================
+        // ELEMENTOS DOM
+        // ============================================================
+        const balls = [
+            document.getElementById('ball1'),
+            document.getElementById('ball2'),
+            document.getElementById('ball3'),
+            document.getElementById('ball4'),
+            document.getElementById('ball5'),
+            document.getElementById('ball6')
+        ];
+
+        const orderLabels = balls.map(b => b.querySelector('.order-label'));
+        const timerDisplay = document.getElementById('timerDisplay');
+        const currentDrawDisplay = document.getElementById('currentDraw');
+        const drawCountDisplay = document.getElementById('drawCount');
+        const statusText = document.getElementById('statusText');
+        const progressFill = document.getElementById('progressFill');
+        const historyContainer = document.getElementById('historyContainer');
+        const historyEmpty = document.getElementById('historyEmpty');
+        const btnStart = document.getElementById('btnStart');
+        const btnStop = document.getElementById('btnStop');
+        const btnClear = document.getElementById('btnClear');
+
+        // ============================================================
+        // FUNÇÕES PRINCIPAIS
+        // ============================================================
+
+        // Gera um número aleatório temporário (pode repetir)
+        function gerarNumeroTemporario() {
+            return Math.floor(Math.random() * (MAX_NUMERO - MIN_NUMERO + 1)) + MIN_NUMERO;
+        }
+
+        // Gera um número aleatório único
+        function gerarNumeroUnico() {
+            const disponiveis = [];
+            for (let i = MIN_NUMERO; i <= MAX_NUMERO; i++) {
+                if (!numerosSorteados.includes(i)) {
+                    disponiveis.push(i);
+                }
+            }
+            if (disponiveis.length === 0) return null;
+            const index = Math.floor(Math.random() * disponiveis.length);
+            return disponiveis[index];
+        }
+
+        // Atualiza a UI baseado no estado atual
+        function atualizarUI() {
+            for (let i = 0; i < balls.length; i++) {
+                const ball = balls[i];
+                const numSpan = ball.querySelector('.num');
+                const label = orderLabels[i];
+                
+                if (i < numerosSorteados.length) {
+                    // Já sorteado
+                    numSpan.textContent = numerosSorteados[i];
+                    ball.className = `number-ball sorted pos-${i + 1}`;
+                    label.classList.remove('hidden');
+                    label.classList.add('sorted-label');
+                } else if (i === numerosSorteados.length && isRandomizing) {
+                    // Atualmente randomizando
+                    ball.className = 'number-ball randomizing';
+                    label.classList.add('hidden');
+                } else if (i === numerosSorteados.length && !isRandomizing && isRunning) {
+                    // Aguardando (próximo da fila)
+                    ball.className = 'number-ball waiting';
+                    numSpan.textContent = '?';
+                    label.classList.add('hidden');
+                } else if (i === numerosSorteados.length && !isRunning) {
+                    ball.className = 'number-ball waiting';
+                    numSpan.textContent = '?';
+                    label.classList.add('hidden');
+                } else {
+                    ball.className = 'number-ball waiting';
+                    numSpan.textContent = '?';
+                    label.classList.add('hidden');
+                }
+            }
+        }
+
+        // Inicia a randomização de um número (65 segundos)
+        function iniciarRandomizacao() {
+            if (numerosSorteados.length >= QUANTIDADE_NUMEROS) {
+                completarRodada();
+                return;
+            }
+            
+            isRandomizing = true;
+            const ballIndex = numerosSorteados.length;
+            const ball = balls[ballIndex];
+            const numSpan = ball.querySelector('.num');
+            
+            // Marca o início da randomização
+            atualizarUI();
+            ball.className = 'number-ball randomizing';
+            numSpan.textContent = '?';
+            
+            statusText.textContent = `🎰 Randomizando número ${ballIndex + 1}...`;
+            statusText.className = 'randomizing-status';
+            
+            // Limpa randomização anterior
+            if (randomizeId) {
+                clearInterval(randomizeId);
+                randomizeId = null;
+            }
+            
+            // Gera o número que será escolhido no final
+            numeroEscolhido = gerarNumeroUnico();
+            
+            // Inicia a randomização (troca números rapidamente)
+            const startTime = Date.now();
+            
+            randomizeId = setInterval(() => {
+                // Mostra um número aleatório temporário
+                const tempNum = gerarNumeroTemporario();
+                numSpan.textContent = tempNum;
+                
+                // Efeito de "pulo" visual
+                numSpan.style.transform = 'scale(1.2)';
+                setTimeout(() => {
+                    numSpan.style.transform = 'scale(1)';
+                }, 50);
+                
+                // Atualiza o timer
+                const elapsed = (Date.now() - startTime) / 1000;
+                const remaining = Math.max(0, Math.ceil(INTERVALO_SEGUNDOS - elapsed));
+                timerDisplay.textContent = remaining;
+                
+                // Atualiza status com o tempo restante
+                if (remaining <= 5) {
+                    statusText.textContent = `⚡ Últimos ${remaining}s...`;
+                    statusText.className = 'randomizing-status';
+                }
+                
+            }, 80); // Troca a cada 80ms para ser mais rápido e dinâmico
+            
+            // Agenda o fim da randomização após 65 segundos
+            setTimeout(() => {
+                if (isRunning) {
+                    finalizarRandomizacao();
+                }
+            }, RANDOMIZE_DURATION);
+        }
+
+        // Finaliza a randomização e fixa o número escolhido
+        function finalizarRandomizacao() {
+            if (randomizeId) {
+                clearInterval(randomizeId);
+                randomizeId = null;
+            }
+            
+            isRandomizing = false;
+            
+            if (numeroEscolhido === null) {
+                statusText.textContent = '⚠️ Erro ao gerar número!';
+                statusText.className = 'inactive';
+                parar();
+                return;
+            }
+            
+            // Adiciona o número escolhido
+            numerosSorteados.push(numeroEscolhido);
+            currentPos = numerosSorteados.length;
+            currentDrawDisplay.textContent = currentPos;
+            
+            // Ordena para exibição
+            numerosSorteados.sort((a, b) => a - b);
+            
+            // Atualiza UI com animação
+            atualizarUI();
+            const ballIndex = numerosSorteados.length - 1;
+            const ball = balls[ballIndex];
+            const numSpan = ball.querySelector('.num');
+            numSpan.textContent = numeroEscolhido;
+            ball.className = `number-ball sorted pos-${ballIndex + 1}`;
+            ball.classList.add('pop');
+            
+            // Atualiza progresso
+            const progresso = (numerosSorteados.length / QUANTIDADE_NUMEROS) * 100;
+            progressFill.style.width = progresso + '%';
+            
+            statusText.textContent = `🎯 Número ${numerosSorteados.length} sorteado: ${numeroEscolhido}`;
+            statusText.className = 'active';
+            
+            // Timer volta a mostrar 65s para o próximo
+            timerDisplay.textContent = INTERVALO_SEGUNDOS;
+            
+            numeroEscolhido = null;
+            
+            // Se completou os 6 números, finaliza a rodada
+            if (numerosSorteados.length === QUANTIDADE_NUMEROS) {
+                setTimeout(() => {
+                    completarRodada();
+                }, 1500);
+                return;
+            }
+            
+            // Aguarda 1.5 segundos antes de iniciar a próxima randomização
+            setTimeout(() => {
+                if (isRunning && numerosSorteados.length < QUANTIDADE_NUMEROS) {
+                    iniciarRandomizacao();
+                }
+            }, 1500);
+        }
+
+        // Completa uma rodada
+        function completarRodada() {
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            
+            history.push({
+                numbers: [...numerosSorteados],
+                time: timeStr
+            });
+            
+            if (history.length > 50) history.shift();
+            renderizarHistorico();
+            
+            drawCount++;
+            drawCountDisplay.textContent = drawCount;
+            
+            statusText.textContent = `✅ Rodada completa! (${drawCount})`;
+            statusText.className = 'completed';
+            progressFill.style.width = '100%';
+            
+            // Reseta para a próxima rodada
+            numerosSorteados = [];
+            currentPos = 0;
+            currentDrawDisplay.textContent = '0';
+            
+            if (isRunning) {
+                setTimeout(() => {
+                    if (isRunning) {
+                        for (const ball of balls) {
+                            ball.className = 'number-ball waiting';
+                            ball.querySelector('.num').textContent = '?';
+                            ball.querySelector('.order-label').classList.add('hidden');
+                        }
+                        progressFill.style.width = '0%';
+                        timerDisplay.textContent = INTERVALO_SEGUNDOS;
+                        statusText.textContent = '🎰 Nova rodada começando...';
+                        statusText.className = 'active';
+                        iniciarRandomizacao();
+                    }
+                }, 2000);
+            }
+        }
+
+        // ============================================================
+        // RENDERIZAÇÃO DO HISTÓRICO
+        // ============================================================
+
+        function renderizarHistorico() {
+            const items = historyContainer.querySelectorAll('.history-item');
+            items.forEach(item => item.remove());
+            
+            if (history.length === 0) {
+                historyEmpty.style.display = 'block';
+                return;
+            }
+            
+            historyEmpty.style.display = 'none';
+            const reversed = [...history].reverse();
+            for (const item of reversed) {
+                const div = document.createElement('div');
+                div.className = 'history-item';
+                div.innerHTML = `
+                    <span class="numbers">${item.numbers.join(' - ')}</span>
+                    <span class="time">${item.time}</span>
+                `;
+                historyContainer.appendChild(div);
+            }
+            historyContainer.scrollTop = 0;
+        }
+
+        // ============================================================
+        // CONTROLES
+        // ============================================================
+
+        function iniciar() {
+            if (isRunning) return;
+            
+            // Reseta estado
+            for (const ball of balls) {
+                ball.className = 'number-ball waiting';
+                ball.querySelector('.num').textContent = '?';
+                ball.querySelector('.order-label').classList.add('hidden');
+            }
+            numerosSorteados = [];
+            currentPos = 0;
+            currentDrawDisplay.textContent = '0';
+            progressFill.style.width = '0%';
+            
+            if (randomizeId) {
+                clearInterval(randomizeId);
+                randomizeId = null;
+            }
+            
+            isRunning = true;
+            timerDisplay.textContent = INTERVALO_SEGUNDOS;
+            
+            btnStart.disabled = true;
+            btnStop.disabled = false;
+            
+            statusText.textContent = '🎰 Iniciando randomização...';
+            statusText.className = 'active';
+            
+            // Inicia a randomização do primeiro número
+            iniciarRandomizacao();
+        }
+
+        function parar() {
+            if (!isRunning) return;
+            
+            isRunning = false;
+            
+            if (timerId) {
+                clearInterval(timerId);
+                timerId = null;
+            }
+            
+            if (randomizeId) {
+                clearInterval(randomizeId);
+                randomizeId = null;
+            }
+            
+            isRandomizing = false;
+            
+            btnStart.disabled = false;
+            btnStop.disabled = true;
+            
+            statusText.textContent = '⏹️ Pausado';
+            statusText.className = 'inactive';
+            timerDisplay.textContent = INTERVALO_SEGUNDOS;
+            
+            // Remove destaques
+            for (const ball of balls) {
+                ball.classList.remove('randomizing', 'waiting');
+            }
+            atualizarUI();
+        }
+
+        function limpar() {
+            if (isRunning) parar();
+            
+            if (randomizeId) {
+                clearInterval(randomizeId);
+                randomizeId = null;
+            }
+            isRandomizing = false;
+            
+            numerosSorteados = [];
+            currentPos = 0;
+            drawCount = 0;
+            history = [];
+            numeroEscolhido = null;
+            
+            drawCountDisplay.textContent = '0';
+            currentDrawDisplay.textContent = '0';
+            timerDisplay.textContent = INTERVALO_SEGUNDOS;
+            progressFill.style.width = '0%';
+            
+            for (const ball of balls) {
+                ball.className = 'number-ball waiting';
+                ball.querySelector('.num').textContent = '?';
+                ball.querySelector('.order-label').classList.add('hidden');
+            }
+            
+            renderizarHistorico();
+            statusText.textContent = '🧹 Limpo';
+            statusText.className = 'inactive';
+        }
+
+        // ============================================================
+        // EVENTOS
+        // ============================================================
+
+        btnStart.addEventListener('click', iniciar);
+        btnStop.addEventListener('click', parar);
+        btnClear.addEventListener('click', limpar);
+
+        // ============================================================
+        // INICIALIZAÇÃO
+        // ============================================================
+
+        for (const ball of balls) {
+            ball.className = 'number-ball waiting';
+        }
+        renderizarHistorico();
+
+        console.log('🎰 Mega-Sena - Sorteio com Randomização');
+        console.log(`⏱️ ${INTERVALO_SEGUNDOS}s de randomização por número`);
+        console.log('🔢 6 números aleatórios de 1 a 60');
+        console.log('📊 Clique em "Iniciar" para começar');
+    </script>
+
+</body>
+</html>
